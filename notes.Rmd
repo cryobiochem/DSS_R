@@ -1,0 +1,802 @@
+---
+title: '**Notes and scripts**'
+author: "cryobiochem"
+output:
+  html_notebook: default
+  pdf_document: default
+---
+## 1 The Data Scientist's Toolbox
+
+## 2. R Programming
+
+### Basics
+```{r}
+# explicit coercion
+as.numeric(x)
+as.logical(x)
+as.character(x)
+as.complex(x)
+
+# data types
+vector("class", n)
+list()
+array(data, dim, dimnames)
+matrix(values, nrow=n, ncol=m)
+data.frame(vector, matrix)
+data.table()
+factor(c("a", "b"), levels = c("1", "2"))
+
+# joins
+rbind(x,y)
+cbind(x,y)
+
+# explore
+dim(df)
+dimnames(df)
+names(df)
+head(df)
+tail(df)
+summary(df)
+str(df)
+colMeans(df)
+rowMeans(df)
+
+# sequences
+seq(1, 20, by=0.5)
+rep(0, times=40)
+replicate(n, expression)
+length()
+seq_along(vector)
+
+
+# comparison
+identical(x,y) # exactly equal
+all.equal(x,y) # near equal
+```
+
+
+### Split-Apply-Combine
+```{r}
+split(x,f,drop=FALSE)
+interactions(x,y)
+apply(array, margin, function)
+lapply(list, function)
+sapply(list, function)
+vapply(list, function, FUN.VALUE = type, ...)
+tapply(vector, index, function)
+mapply(function, ...)
+aggregate(...) # compute summary of multiple subsets (multiple t-apply)
+```
+
+
+### Data Simulation
+```{r}
+rbinom(n = , size=, prob=)
+rnorm(n, mean = m, sd = s)
+dnorm(x, mean = 0, sd = 1, log = FALSE)
+pnorm(q, mean = 0, sd = 1, lower.tail = TRUE, log.p = FALSE)
+qnorm(p, mean = 0, sd = 1, lower.tail = TRUE, log.p = FALSE)
+rpois(n, lambda)
+rpois(n, r)
+ppois(n, r)
+
+```
+
+
+### Base Graphics
+```{r}
+plot(x, y, xlab, ylab, main, sub, col, pch, xlim, ylim)
+boxplot(x~y, data=d)
+hist(x, breaks)
+```
+
+
+
+### Datetime
+```{r}
+Date
+POSIXct
+POSIXlt
+
+Sys.Date()
+Sys.time()
+weekdays(date)
+months(date)
+quarters(date)
+strptime(string, "%B %d, %Y %H:%M")
+difftime(time1, time2, units = 'days')
+```
+
+
+### **pollutantmean.R**
+```{r}
+# PROGRAMMING ASSIGMENT 1: AIR POLLUTION
+# PART 1
+# Write a function named 'pollutantmean' that calculates the mean of a pollutant
+# (sulfate or nitrate) across a specified list of monitors. The function 
+# 'pollutantmean' takes three arguments: 'directory', 'pollutant', and 'id'. Given
+# a vector monitor ID numbers, 'pollutantmean' reads that monitors' particulate 
+# matter data from the directory specified in the 'directory' argument and returns
+# the mean of the pollutant across all of the monitors, ignoring any missing 
+# values coded as NA. A prototype of the function is as follows
+
+pollutantmean <- function(directory, pollutant, id = 1:332) {
+    # Get full path of the specsdata folder
+    directory <- paste(getwd(),"/",directory,"/",sep="")
+    
+    # Aux variables
+    file_list <- list.files(directory)
+    data <- NA
+    #For each id passed as parameter:
+    for (i in id) {
+        #Read the file,
+        file_dir <- paste(directory,file_list[i],sep="")
+        file_data <- read.csv(file_dir)
+        
+        # accumulate the data
+        data <- rbind(data,file_data)
+    }
+    # Calculate the mean and return it
+    mean(data[[pollutant]],na.rm = TRUE)
+}
+
+# >============== TEST SCENARIOS ==============<
+
+test1 <- pollutantmean("specdata","sulfate",id=1:10) 
+test1
+#4.064
+test2 <- pollutantmean("specdata","nitrate",id=70:72) 
+test2
+#1.706
+test3 <- pollutantmean("specdata","nitrate",id=23) 
+test3
+#1.281
+```
+
+### **complete.R**
+```{r}
+# PROGRAMMING ASSIGMENT 1: AIR POLLUTION
+# PART 2
+# Write a function that reads a directory full of files and reports the number of 
+# completely observed cases in each data file. The function should return a data 
+# frame where the first column is the name of the file and the second column is 
+# the number of complete cases. A prototype of this function follows
+
+
+complete <- function(directory, id = 1:332) {
+    # Get full path of the specsdata folder
+    directory <- paste(getwd(),"/","specdata","/",sep="")
+    
+    # Aux variables
+    file_list <- list.files(directory)
+    ids <- vector()
+    nobs <- vector()
+    
+    #For each id passed as parameter:
+    for (i in id) {
+        # Read the file,
+        file_dir <- paste(directory,file_list[i],sep="")
+        file_data <- read.csv(file_dir)
+        
+        # acumulate ids and nobs values in the vectors    
+        ids = c(ids,i)
+        nobs = c(nobs,sum(complete.cases(file_data)))        
+    }
+    # Finally, Create the data frame using the vectors and return it
+    data.frame(id = ids, nobs = nobs)
+}
+
+
+# >============== TEST SCENARIOS ==============<
+
+test1 <- complete("specdata", 1)
+test1
+##   id nobs
+## 1  1  117
+test2 <- complete("specdata", c(2, 4, 8, 10, 12))
+test2
+##   id nobs
+## 1  2 1041
+## 2  4  474
+## 3  8  192
+## 4 10  148
+## 5 12   96
+test3 <- complete("specdata", 30:25)
+test3
+##   id nobs
+## 1 30  932
+## 2 29  711
+## 3 28  475
+## 4 27  338
+## 5 26  586
+## 6 25  463
+test4 <- complete("specdata", 3)
+test4
+##   id nobs
+## 1  3  243
+```
+
+### **corr.R**
+```{r}
+# PROGRAMMING ASSIGMENT 1: AIR POLLUTION
+# PART 3
+# Write a function that takes a directory of data files and a threshold for 
+# complete cases and calculates the correlation between sulfate and nitrate for 
+# monitor locations where the number of completely observed cases (on all 
+# variables) is greater than the threshold. The function should return a vector 
+# of correlations for the monitors that meet the threshold requirement. If no
+# monitors meet the threshold requirement, then the function should return a 
+# numeric vector of length 0.
+
+source("complete.R")
+
+corr <- function(directory, threshold = 0) {
+    # Get full path of the specsdata folder
+    directory <- paste(getwd(),"/",directory,"/",sep="")    
+    
+    #Get observations and filter by threshold
+    observations <- complete(directory)
+    filtered_observations = subset(observations,observations$nobs > threshold)
+        
+    # Aux variables
+    file_list <- list.files(directory)
+    correlation <- vector()
+    
+    # For each id in filtered observations:
+    for (i in filtered_observations$id) {
+        # Read the file,
+        file_dir <- paste(directory,file_list[i],sep="")
+        file_data <- read.csv(file_dir)
+        # remove NA,
+        file_data <- subset(file_data,complete.cases(file_data))        
+        # and calculate the cor and accumulate it in the corellation vector.
+        correlation <- c(correlation,cor(file_data$nitrate,file_data$sulfate))    
+    }
+    #Finally, return the vector
+    correlation
+}
+
+# >============== TEST SCENARIOS ==============<
+
+#source("corr.R")
+#source("complete.R")
+cr <- corr("specdata", 150)
+head(cr)
+## [1] -0.01896 -0.14051 -0.04390 -0.06816 -0.12351 -0.07589
+summary(cr)
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+## -0.2110 -0.0500  0.0946  0.1250  0.2680  0.7630
+cr <- corr("specdata", 400)
+head(cr)
+## [1] -0.01896 -0.04390 -0.06816 -0.07589  0.76313 -0.15783
+summary(cr)
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+## -0.1760 -0.0311  0.1000  0.1400  0.2680  0.7630
+cr <- corr("specdata", 5000)
+summary(cr)
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+## 
+length(cr)
+## [1] 0
+cr <- corr("specdata")
+summary(cr)
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+## -1.0000 -0.0528  0.1070  0.1370  0.2780  1.0000
+length(cr)
+## [1] 323
+```
+### **cachevector.R**
+```{r}
+makeVector <- function(x = numeric()) {
+    m <- NULL
+    set <- function(y) {
+        x <<- y
+        m <<- NULL
+    }
+    get <- function() x
+    setmean <- function(mean) m <<- mean
+    getmean <- function() m
+    list(set = set, get = get,
+         setmean = setmean,
+         getmean = getmean)
+}
+
+cachemean <- function(x, ...) {
+    m <- x$getmean()
+    if(!is.null(m)) {
+        message("getting cached data")
+        return(m)
+    }
+    data <- x$get()
+    m <- mean(data, ...)
+    x$setmean(m)
+    m
+}
+
+# >============ EXAMPLES ==============<
+
+a <- makeVector(c(1,2,3,4)) # Creates a list
+a$get()
+#[1] 1 2 3 4 
+a$getmean()
+#NULL
+cachemean(a) #calculates and set the mean of the Vector "a"
+#[1] 2.5
+a$getmean()  # this is only to show you that the mean has been stored and does not affect anything
+#[1] 2.5
+cachemean(a) # as the mean has been calculated previously, this returns the saved one
+#[1] 2.5
+a$set(c(10,20,30,40)) # Set overrides x and set m <- NULL
+a$getmean()
+#NULL
+cachemean(a)
+#[1] 25
+cachemean(a)
+#getting cached data
+#[1] 25
+a$get()
+#[1] 10 20 30 40
+a$setmean(0)  # do NOT call setmean() directly despite it being accessible for the reason you will see next
+a$getmean()
+#[1] 0      # obviously non-sense since...
+a$get()
+#[1] 10 20 30 40
+cachemean(a)
+#[1] 0    # as you can see the call to setmean() effectively corrupted the functioning of the code
+a <- makeVector(c(5, 25, 125, 625))
+a$get()
+#[1] 5 25 125 625
+cachemean(a)
+#[1] 195
+cachemean(a)
+#getting cached data
+#[1] 195
+```
+### **cachematrix.R**
+```{r}
+## Pair of functions that cache the inverse of a matrix.
+
+## This function creates a special "matrix" object that can cache its inverse.
+makeCacheMatrix <- function(matrix = matrix()) {
+    # store inverse value
+    inverse <- NULL
+    # set the original matrix and reset inverse
+    set <- function(y) {
+        matrix <<- y
+        inverse <<- NULL
+    }
+    # get the original matrix
+    get <- function() matrix
+    # set inverse value
+    set_inverse <- function(inv) inverse <<- inv
+    # get inverse value
+    get_inverse <- function() inverse
+    
+    # Returns a list of the 4 functions, this list is the special "matrix"
+    list(set = set, get = get,
+         set_inverse = set_inverse,
+         get_inverse = get_inverse)
+}
+
+
+## This function computes the inverse of the special "matrix" returned by 
+## makeCacheMatrix above. If the inverse has already been calculated (and 
+## the matrix has not changed), then the cachesolve should retrieve the 
+## inverse from the cache.
+
+cacheSolve <- function(special_matrix, ...) {
+    inverse <- special_matrix$get_inverse()
+    if(!is.null(inverse)) {
+        message("getting cached data")
+        return(inverse)
+    }
+    data <- special_matrix$get()
+    inverse <- solve(data, ...)
+    special_matrix$set_inverse(inverse)
+    inverse
+}
+
+
+## Unit tests (with expected output) for Programming Assignment 2
+
+source("cachematrix.R")
+
+amatrix = makeCacheMatrix(matrix(c(1,2,3,4), nrow=2, ncol=2))
+amatrix$get()         # Returns original matrix
+# [,1] [,2]
+# [1,]    1    3
+# [2,]    2    4
+
+cacheSolve(amatrix)   # Computes, caches, and returns    matrix inverse
+# [,1] [,2]
+# [1,]   -2  1.5
+# [2,]    1 -0.5
+
+amatrix$get_inverse()  # Returns matrix inverse
+# [,1] [,2]
+# [1,]   -2  1.5
+# [2,]    1 -0.5
+
+cacheSolve(amatrix)   # Returns cached matrix inverse using previously computed matrix inverse
+# getting cached data
+# [,1] [,2]
+# [1,]   -2  1.5
+# [2,]    1 -0.5
+
+amatrix$set(matrix(c(0,5,99,66), nrow=2, ncol=2)) # Modify existing matrix
+cacheSolve(amatrix)   # Computes, caches, and returns new matrix inverse
+# [,1] [,2]
+# [1,] -0.13333333  0.2
+# [2,]  0.01010101  0.0
+
+amatrix$get()         # Returns matrix
+# [,1] [,2]
+# [1,]    0   99
+# [2,]    5   66
+
+amatrix$get_inverse()  # Returns matrix inverse
+# [,1] [,2]
+# [1,] -0.13333333  0.2
+# [2,]  0.01010101  0.0
+```
+### **best.R**
+```{r}
+data_dir ="./rprog-data-ProgAssignment3-data/"
+
+library(datasets) # to test valid states
+
+file_path <- function(...){paste(data_dir,...,sep = "/")}
+valid_outcomes <- c("heart attack", "heart failure", "pneumonia")
+
+
+## Return hospital name in that state with lowest 30-day death rate for the 
+## given outcome
+best <- function(state, outcome) {
+    ## Check that state and outcome are valid
+    if(!(state %in% state.abb)) {stop("invalid state")}
+    if(!(outcome %in% valid_outcomes)) {stop("invalid outcome")}
+        
+    ## colClasses is mandatory to use which.min() method
+    data <- read.csv(file = file_path("outcome-of-care-measures.csv"),
+                     colClasses="character")
+    ## Also give readable names to the columns
+    names(data) <- gsub("\\.\\.\\.",".",names(data))
+    names(data) <- gsub("\\.\\.",".",names(data))
+    names(data) <- tolower(names(data))
+        
+    # Format and Paste the outcome to access directly to the target column 
+    outcome <- gsub(" ",".",outcome)
+    outcome <- paste("hospital.30.day.death.mortality.rates.from",outcome,
+                     sep=".")
+    
+    # Row subets matching state and without "Not Available" values
+    data <- data[data$state == state & data[outcome] != "Not Available", ]
+    
+    # Returns the row in which the outcome has the minium value
+    data <- data[which.min(data[ ,outcome]), ]
+    hospital_name <- data[ ,"hospital.name"]
+    hospital_name
+}
+
+#best("TX", "heart attack") # [1] "CYPRESS FAIRBANKS MEDICAL CENTER"
+#best("TX", "heart failure") # [1] "FORT DUNCAN MEDICAL CENTER"
+#best("MD", "heart attack") # [1] "JOHNS HOPKINS HOSPITAL, THE"
+#best("MD", "pneumonia") # [1] "GREATER BALTIMORE MEDICAL CENTER"
+#best("BB", "heart attack") # Error in best("BB", "heart attack") : invalid state
+#best("NY", "hert attack") # Error in best("NY", "hert attack") : invalid outcome
+```
+### **rankhospital.R**
+```{r}
+data_dir ="./rprog-data-ProgAssignment3-data/"
+
+library(datasets) # to test valid states
+
+file_path <- function(...){paste(data_dir,...,sep = "/")}
+valid_outcomes <- c("heart attack", "heart failure", "pneumonia")
+
+rankhospital <- function(state,outcome,rank){
+    ## Check that state and outcome are valid
+    if(!(state %in% state.abb)) {stop("invalid state")}
+    if(!(outcome %in% valid_outcomes)) {stop("invalid outcome")}
+    
+    data <- read.csv(file = file_path("outcome-of-care-measures.csv"),
+                     colClasses="character")
+    
+    ## Also give readable names to the columns
+    names(data) <- gsub("\\.\\.\\.",".",names(data))
+    names(data) <- gsub("\\.\\.",".",names(data))
+    names(data) <- tolower(names(data))
+    
+    # Format and Paste the outcome to access directly to the target column 
+    outcome <- gsub(" ",".",outcome)
+    outcome <- paste("hospital.30.day.death.mortality.rates.from",outcome,
+                     sep=".")
+    
+    # Row subets matching state and without "Not Available" values
+    data <- data[data$state == state & data[outcome] != "Not Available", ]
+    
+    # Cast as.double so order function can works properly
+    data[,outcome] <- as.double(data[,outcome])
+    
+    # Order the rows by the outcome column and then by hospital name
+    data <- data[ order(data[,outcome],data$hospital.name), ]
+    
+    # Return data depending on the rank input
+    if(rank == "best") {hospital <- data[1,"hospital.name"]}
+    else if(rank == "worst") {hospital <- data[nrow(data),"hospital.name"]}
+    else {hospital <- data[rank,"hospital.name"]}
+    
+    hospital
+}
+
+rankhospital("TX", "heart failure", 4) # [1] "DETAR HOSPITAL NAVARRO"
+rankhospital("MD", "heart attack", "worst") # [1] "HARFORD MEMORIAL HOSPITAL"
+rankhospital("MN", "heart attack", 5000) # [1] NA
+```
+### **rankall.R**
+```{r}
+data_dir ="./rprog-data-ProgAssignment3-data/"
+
+library(datasets) # to test valid states
+
+file_path <- function(...){paste(data_dir,...,sep = "/")}
+valid_outcomes <- c("heart attack", "heart failure", "pneumonia")
+
+rankall <- function(outcome,rank="best"){
+    ## Check that state and outcome are valid
+    if(!(outcome %in% valid_outcomes)) {stop("invalid outcome")}
+    
+    data <- read.csv(file = file_path("outcome-of-care-measures.csv"),
+                     colClasses="character")
+    
+    ## Also give readable names to the columns
+    names(data) <- gsub("\\.\\.\\.",".",names(data))
+    names(data) <- gsub("\\.\\.",".",names(data))
+    names(data) <- tolower(names(data))
+    
+    
+    # Format and Paste the outcome to access directly to the target column 
+    outcome <- gsub(" ",".",outcome)
+    outcome <- paste("hospital.30.day.death.mortality.rates.from",outcome,
+                     sep=".")    
+
+    data <- data[,c("hospital.name","state",outcome)]
+    names(data) <- c("hospital.name","state","outcome")
+    
+    hospitals <- character(0)
+    states <- character(0)
+    outcomes <- double(0)
+    
+    for(state in unique(data$state)){
+        # Filter data by the state and only valid values
+        state_data <- data[data$state == state & data$outcome != "Not Available",]
+        
+        # Cast as.double so order function can works properly
+        state_data$outcome <- as.double(state_data$outcome)
+        
+        # Order the rows by the outcome column and then by hospital name
+        state_data <- state_data[ order(state_data$outcome,
+                                        state_data$hospital.name), ]
+        
+        # Return data depending on the rank input
+        if(rank == "best") { hospital <- state_data[1,"hospital.name"] }
+        else if(rank == "worst") { hospital <- state_data[nrow(state_data),"hospital.name"] }
+        else { hospital <- state_data[rank,"hospital.name"] }
+        
+        hospitals <- c(hospitals,hospital)
+        states <- c(states,state)
+    }
+    
+    ranked_hospitals = data.frame(hospitals,states)
+    ranked_hospitals <- ranked_hospitals[ order(ranked_hospitals$state) , ]
+    names(ranked_hospitals) <- c("hospital","state")
+    ranked_hospitals
+}
+
+
+head(rankall("heart attack", 20), 10)
+tail(rankall("pneumonia", "worst"), 3)
+tail(rankall("heart failure"), 10)
+```
+
+
+
+
+
+## 3. Getting and Cleaning Data
+### Navigate working directory
+```{r}
+setwd("./foldername")              # go down one level
+setwd("../")                       # go up one level
+setwd("/Users/bruno/foldername")   # absolute match
+```
+
+
+
+### Create folder if doesn't exist
+```{r}
+if (!file.exists("foldername")) {
+  dir.create("foldername")
+}
+
+```
+
+
+
+### Get data from internet
+```{r}
+# csv, tab-delim
+download.file(url="https://test.com/dataset.csv",
+              destfile="./foldername/destination.csv",
+              method=, mode='wb' #for xlsx)   
+              
+list.files("./foldername)
+dataDownloaded <- date()
+```
+
+
+### Read local flat files
+```{r}
+data <- read.table("./foldername/destination.csv",
+                   sep=",",
+                   header=TRUE,
+                   quote = "",           # no quotes in dataset
+                   na.strings = "",      # char that represents missing value     
+                   nrows=,               # how many rows to read
+                   skip=                # how many lines to skip from top  
+                  )
+
+
+# alternatives
+read.csv("./foldername/destination.csv", sep=, header=TRUE)
+read.csv2() # for larger datasets
+```
+
+
+### Read Excel files
+```{r}
+library(xlsx)
+data <- read.xlsx("./foldername/destination.xlsx",
+                  sheetIndex=1,
+                  header=TRUE,
+                  colIndex=colIndex,
+                  rowIndex=rowIndex
+                  )
+# subsetting
+colIndex <- 2:3
+rowIndex <- 1:4
+
+# write back file
+write.xlsx(#similar args)
+
+#alternatives
+read.xlsx2() #faster, but not good for subsets
+package::xlconnect
+
+```
+
+
+### Read XML files
+```{r}
+library(XML)
+fileUrl <- "https://test.com/dataset.xml"
+doc <- xmlTreeParse(fileUrl, useInternal=TRUE)
+rootNode <- xmlRoot
+
+# ------------------------------
+# Basic XML navigation
+# ------------------------------
+xmlName(rootNode)
+names(RootNode)
+rootNode[[1]]
+rootNode[[1]][[1]]
+
+xmlSApply(rootNode, xmlValue) # recursively get every value in every tag of the doc (the content)
+
+# ------------------------------
+# Web scraping with XPath
+# ------------------------------
+/node # top level node
+//node # node at any level
+node[@attr-name] # node with attribute name
+node[@attr-name='bob'] # node with specific attribute name
+
+# get all values with name tag in root node
+names <- xpathSApply(rootNode, "//name", xmlValue)
+# get all values with price tag in root node
+prices <- xpathSApply(rootNode, "//price", xmlValue)
+# get scores
+scores <- xpathSApply(doc, "//li[@class='score", xmlValue)
+# get team names
+teams <- xpathSApply(doc, "//li[@class='team-name", xmlValue)
+
+```
+
+
+### Read JSON files
+```{r}
+library(jsonlite)
+jsonData <- fromJSON("https://api.test.com/dataset")
+
+names(jsonData)
+names(jsonData$owner)
+jsonData$owner$login
+
+# ------------------------------
+# Write R dataframes to JSON
+# ------------------------------
+myjson <- toJSON(iris, pretty=TRUE)
+cat(myjson)
+
+# decode, identical to iris
+iris2 <- fromJSON(myjson)
+head(iris2)
+```
+
+### data.table Package
+More efficient than data frame
+```{r}
+library(data.table)
+dt = data.table(x=rnorm(9), y=rep(c("a", "b", "c"), each = 3), z=rnorm(9))
+
+tables() # check all data tables in memory
+
+# ------------------------------
+# HOW TO USE
+# ------------------------------
+dt[2,]
+dt[dt$y=="a"]
+
+# subset rows
+dt[c(2,3)]
+
+# subset cols, use expressions | NOT dt[,c(2,3)]
+{
+  x=1
+  y=2
+}
+k = {print(10); 5} # 10
+print(k)           # 5
+
+# pass functions to expressions
+dt[,list(mean(x), sum(z))]
+dt[,table(y)]
+
+# add new columns :=
+dt2 = copy(dt) # dt2 <- dt doesnt work
+dt[,w:z^2]
+
+# multi step operations to a new column
+dt[,m:={tmp <- (x+z);log2(tmp+5)}]
+
+# plyr logical (TRUE/FALSE in new col)
+dt[,a:=x>0]
+
+# plyr group by logical 'a'
+dt[,b:=mean(x+w),by=a]
+
+# .N counts number of times value appears
+dt[, .N, by=x]
+
+# keys to rapidly subset a table
+dt <- data.table(x=rep(c("a", "b", "c"), each=100), y=rnorm(300))
+setkey(dt, x)
+dt['a']
+
+# JOINS
+DT1 <- data.table(x=c('a','a','b','dt1'), y=1:4)
+DT1 <- data.table(x=c('a','b','dt2'), z=5:7)
+setkey(DT1, x); setkey(DT2, x)
+merge(DT1,DT2) # use key to merge
+
+# FAST READING WITH TEMP FILES
+big_df <- data.frame(x=rnorm(1E6), y=rnorm(1E6))
+file <- tempfile()
+write.table(big_df, file=file, row.names=FALSE, col.names=TRUE, sep="\t", quote=FALSE)
+
+system.time(fread(file)) # .326 s
+system.time(read.table(file,header=TRUE, sep="\t")) # 5.7 s
+
+
+```
+
