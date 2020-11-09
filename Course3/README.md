@@ -12,8 +12,8 @@ Author: Bruno Guerreiro <br />
 
 Item | Link to Item
 --- | ---
-run_analysis.R |  [R Script Link](https://github.com/mGalarnyk/datasciencecoursera/blob/master/3_Getting_and_Cleaning_Data/projects/run_analysis.R "run_analysis.R")
-tidyData.txt |  [Data Set Link](https://github.com/mGalarnyk/datasciencecoursera/blob/master/3_Getting_and_Cleaning_Data/data/tidyData.txt "tidyData.txt")
-Github Repo |  [Repo Link](https://github.com/mGalarnyk/datasciencecoursera/tree/master/3_Getting_and_Cleaning_Data "Click to go to Repo")
-CodeBook.md |  [Codebook Link](https://github.com/mGalarnyk/datasciencecoursera/blob/master/3_Getting_and_Cleaning_Data/projects/CodeBook.md "CodeBook.md")
-README.md |  [Readme Link](https://github.com/mGalarnyk/datasciencecoursera/blob/master/3_Getting_and_Cleaning_Data/projects/README.md "README.md")
+run_analysis.R |  [R Script Link](https://github.com/cryobiochem/datasciencecoursera/blob/master/Course3/run_analysis.R "run_analysis.R")
+tidyData.txt |  [Data Set Link](https://github.com/cryobiochem/datasciencecoursera/blob/master/Course3/tidyData.txt "tidyData.txt")
+Github Repo |  [Repo Link](https://github.com/cryobiochem/datasciencecoursera/tree/master/Course3 "Click to go to Repo")
+CodeBook.md |  [Codebook Link](https://github.com/cryobiochem/datasciencecoursera/blob/master/Course3/CodeBook.md "CodeBook.md")
+README.md |  [Readme Link](https://github.com/cryobiochem/datasciencecoursera/blob/master/Course3/README.md "README.md")
