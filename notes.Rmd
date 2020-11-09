@@ -5,10 +5,12 @@ output:
   html_notebook: default
   pdf_document: default
 ---
+
 ## 1 The Data Scientist's Toolbox
 
-## 2. R Programming
 
+
+## 2. R Programming
 ### Basics
 ```{r}
 # explicit coercion
@@ -52,6 +54,10 @@ seq_along(vector)
 # comparison
 identical(x,y) # exactly equal
 all.equal(x,y) # near equal
+
+# counting (with dplyr package)
+n()
+n_distinct()
 ```
 
 
@@ -79,7 +85,6 @@ qnorm(p, mean = 0, sd = 1, lower.tail = TRUE, log.p = FALSE)
 rpois(n, lambda)
 rpois(n, r)
 ppois(n, r)
-
 ```
 
 
@@ -603,6 +608,8 @@ tail(rankall("heart failure"), 10)
 
 
 
+
+
 ## 3. Getting and Cleaning Data
 ### Navigate working directory
 ```{r}
@@ -733,6 +740,164 @@ iris2 <- fromJSON(myjson)
 head(iris2)
 ```
 
+### Read mySQL
+```{r}
+#server-level
+library/RMySQL)
+ucscDb <- dbConnect(MySQL() user="genome", host="genome-mysql.cse.ucsc.edu")
+result <- dbGetQuery(ucscDb, "show databases;"); dbDisconnect(ucscDb); #ALWAYS CLOSE CONNECTION
+
+# database-level
+hg19 <- dbConnect(MySQL(), user="genome", host="genome-mysql.cse.ucsc.edu", db="hg19")
+allTables <- dbListTables(hg19)
+length(allTables)
+
+# table-level
+dbListFields(hg19, "table-name")
+affyData <- dbReadTable(hg19, "table-name")
+head(affyData)
+
+
+# ------------------------------
+# QUERIES
+# ------------------------------
+# count number of records
+dbGetQuery(hg19, "select count(*) from table-name")
+
+# subset data
+query <- dbSendQuery(, "select * from table-name where misMatches between 1 and 3")
+affyMis <- fetch(query); quantile(affyMis$misMatches)
+# top 10 records
+affyMisSmall <- fetch(query, n=10); dbClearResult(query);
+```
+
+### Read HDF5
+```{r}
+library(hdf5r)
+created = h5createFile("example.h5")
+created
+
+created = h5createGroup("example.h5", "groupname1")
+created = h5createGroup("example.h5", "groupname1/subgroupname1")
+h5ls("example.h5")
+
+# write to groups
+dataset1 = matrix()
+h5write(dataset1, "example.h5", "groupname1")
+attr(dataset1, "scale") <- "liter" # metadata naming
+
+# write dataset to root
+h5write(df, "example.h5", "df") # last arg is var name, not group name
+
+# read
+readA = h5read("example.h5", "foo/foobaa/B")
+
+# write/read chunks
+h5write(c(12,13,14), "example.h5", "foo/A", index=list(1:3,1))
+h5read("example.h5", "foo/A", index=list(1:3,1))
+```
+
+
+### Read from the Web (Webscraping)
+```{r}
+con = url("http://url.com")
+htmlCode = readLines(con)
+close(con)
+htmlCode
+
+# ------------------------------
+# Using GET from httr
+# ------------------------------
+library(httr)
+html2 = GET(url)
+content2 = content(html2, as="text")
+parsedHtml = htmlParse(content2, asText=TRUE)
+xpathSApply(parsedHtml, "//title", xmlValue)
+
+
+# ------------------------------
+# Acessing websites with passwords
+# ------------------------------
+pg2 = GET(url, authenticate("user", "password")) # status 401 = fail, 200 = success
+content3 = content(pg2, as="text")
+...
+
+
+# ------------------------------
+# Using handles (avoid keeping to authenticate)
+# ------------------------------
+google = handle("http://google.com")
+pg1 = GET(handle=google, path="/")
+pg2 = GET(handle=google, path="search") # "save" cookies in the handle
+```
+
+
+### Read from APIs
+```{r}
+myapp = oauth_app("twitter", key="yourConsumerKeyHere", secret="yourConsumerSecretHere")
+sig = sign_oauth1.0(myapp, token="yourTokenHere", token_secret="yourTokenSecretHere")
+homeTL = GET("https://api.twitter.com/1.1/statuses/home_timeline.json", sig)
+
+# ------------------------------
+# Re-format data object as data frame for readability
+# ------------------------------
+json1 = content(homeTL)
+json2 = jsonlite::fromJSON(toJSON(json1))
+json2
+```
+
+
+### Reading other sources
+```{r}
+file()
+url()
+gzfile()
+bzfile()
+?connections
+
+# ------------------------------
+# FOREIGN package
+# ------------------------------
+read.arff    # Weka
+read.dta     # Stata
+read.mtp     # Minitab
+read.octave  # Octave
+read.spss    # SPSS
+read.xport   # SAS
+
+
+# ------------------------------
+# databases
+# ------------------------------
+package::RPostgreSQL
+package::RODBC
+package::Rmongo
+package::rmongodb
+
+
+# ------------------------------
+# images
+# ------------------------------
+jpeg
+readbitmap
+png
+EBImage
+
+# ------------------------------
+# GIS (geographic) data
+# ------------------------------
+rdgal
+rgeos
+raster
+
+# ------------------------------
+# music
+# ------------------------------
+tuneR
+seewave
+```
+
+
 ### data.table Package
 More efficient than data frame
 ```{r}
@@ -796,7 +961,533 @@ write.table(big_df, file=file, row.names=FALSE, col.names=TRUE, sep="\t", quote=
 
 system.time(fread(file)) # .326 s
 system.time(read.table(file,header=TRUE, sep="\t")) # 5.7 s
-
-
 ```
 
+### Subsetting and sorting
+```{r}
+#if/or statements in dataframe X
+X[(condition & condition),]
+X[(condition | condition),]
+
+# return indices were condition is met. good for not subsetting NAs
+X[which(X$var1 > 8),]
+
+# sorting (e.g. sorts column)
+sort(X$var1)
+sort(X$var1, decreasing=TRUE)
+sort(X$var1, na.last=TRUE) # put NA at end of sort
+
+# ordering (e.g. sorts entire dataframe with respect to column)
+X[order(X$var1),]
+X[order(X$var1, X$var3),]
+
+library(plyr)
+arrange(X, var1) # ascending
+arrange(X, desc(var1)) # descending
+
+# add data
+X$var4 <- rnorm(5) # simply assign new col name)
+Y <- cbind(X, rnorm(5)) # cbind is not permanent, so store in var
+```
+
+
+### Summarizing data
+```{r}
+head(dataset,n=3)
+tail(dataset,n=3)
+summary(dataset)
+str(dataset)
+quantile(dataset$col1, na.rm=TRUE)
+quantile(dataset$col1, probs=c(0.5,0.75,0.9))
+table(dataset$col1, useNA="ifany") # useNA reports amount of NAs in sep col
+table(dataset$col1, dataset$col2)
+
+# amount of NAs in column
+sum(is.na(dataset$col1))
+
+# logical that reports any NAs
+any(is.na(dataset$col1))
+
+# logical check if all verifies the condition
+all(dataset$col1 > 0)
+
+# col/row manipulation
+colSums(is.na(dataset))
+rowSums(dataset)
+
+# checks if any values are 21212, same as == but for multiple checks
+table(dataset$zipcode %in% c("21212"))
+table(dataset$zipcode %in% c("21212", "21213"))
+
+# subset
+dataset[dataset$zipcode %in% c("21212", "21213"),]
+
+# cross tabs
+data(UCBAdmissions)
+DF = as.data.frame(UCBAdmissions)
+xt <- xtabs(Freq ~ Gender+Admit, data=DF) # Freq: data that shows as values
+                                          # Gender+Admit: vars you want to break
+                                          # down your values by
+
+# break by all variables
+xtabs(breaks ~ ., data=warpbreaks)
+
+# flat tables (more compact cross tabs for large tables)
+ftable(xt)
+
+# check size of dataset
+object.size(dataset)
+print(object.size(dataset), units="Mb")
+```
+
+
+### Creating new variables
+```{r}
+# sequences useful for index
+dataset$newvar = seq(min, max, by=step)
+dataset$newvar = seq(min, max, length=int)
+dataset$newvar = seq(along=c(1,3,8,25,100))
+
+# create binary variables
+restData$zipWrong = ifelse(restData$zipCode < 0, TRUE, FALSE)
+table(restData$zipWrong, restData$zipCode < 0)
+
+# create categorical variables
+restData$zipGroups = cut(restData$zipCode, breaks=quantile(restData$zipCode)) # create bins defined by quartile intervals (they are factors now)
+table(restData$zipGroups)
+
+# easier cutting
+library(Hmisc)
+restData$zipGroups = cut2(restData$zipCode, g=4)
+table(restData$zipGroups)
+
+
+# create factor variables
+restData$zipcodeFactor <- factor(restData$zipCode)
+
+# levels of factor variables
+yesno <- sample(c("yes", "no"), size=10, replace=TRUE)   # create mock list
+yesnofac = factor(yesno, levels=c("yes", "no"))          # custom order
+relevel(yesnofac, ref="no")                              # to force 1st factor assignment
+as.numeric(yesnofac)                                     # numeric convertible
+
+# mutate function: create var + add to dataset simultaneously
+library(plyr); library(Hmisc)
+restData2 = mutate(restData, zipGroups=cut2(zipCode,g=4))
+
+# ------------------------------
+# COMMON TRANSFORMS
+# ------------------------------
+abs(x)
+sqrt(x)
+ceiling(3.475) # round up: 4
+floor(3.475) # round down: 3
+round(3.475, digits=2) # round decimals: 3.48
+signif(3.475, digits=2) # amount of significant digits: 3.5
+cos(x); sin(x); tan(x)
+log2(x); log10(x); log(x) #log e. use logs when data is very skewed/contains lots of outliers
+exp(x)
+```
+
+
+
+### Reshaping data
+```{r}
+library(reshape2)
+
+# take mtcars dataset, get id columns, create new cols that contain mpg, hp, and respective values
+carMelt <- melt(mtcars, id=c("carname", "gear", "cyl"), measure.vars=c("mpg", "hp"))
+
+# put dataset back together, broken down by a variable
+cylData <- dcast(carMelt, cyl ~ variable) # default is a count: e.g. for 4 cylinders, we have 11 measures of mpg and hp
+cylData <- dcast(carMelt, cyl ~ variable,mean) # get mean
+
+# averaging values
+tapply(InsectSprays$count, InsectSprays$spray, sum)
+
+# Split-apply-combine
+# split
+spIns = split(InsectSprays$count, InsectSprays$spray)
+# apply
+sprCount = lapply(spIns, sum)
+# combine
+unlist(sprCount)
+
+
+# using plyr for same result
+ddply(InsectSprays,.(spray),summarize,sum=sum(count))
+# get sum but maintain equal dims
+ddply(InsectSprays,.(spray), summarize, sum=ave(count,FUN=sum))
+
+
+# others
+acast()     # dcast for data.frame, acast to turn into array
+arrange()   # faster reordering without using order()
+mutate()    # add new variables
+```
+### Merging data
+```{r}
+# check by what columns can the datasets be merged
+intersect(names(dataset1), names(dataset2))
+
+# match datasets based on id (default is an outer join)
+merge(x, y, by, by.x, by.y, all)
+merge(dataset1, dataset2, by.x="solution_id", by.y="id", all=TRUE)
+
+
+# using plyr (default is left join)
+df1 = data.frame(id=sample(1:10), x=rnorm(10))
+df2 = data.frame(id=sample(1:10), y=rnorm(10))
+arrange(join(df1,df2), id) # can only merge by one var
+
+df1 = data.frame(id=sample(1:10), x=rnorm(10))
+df2 = data.frame(id=sample(1:10), y=rnorm(10))
+df3 = data.frame(id=sample(1:10), z=rnorm(10))
+dfList = list(df1,df2,df3)
+join_all(dfList)
+```
+
+### DPLYR package
+```{r}
+arrange()     # reorder rows
+filter()      # return row subset based on logic
+select()      # return column subset
+mutate()      # add new variables/columns, transform existing
+rename()      # rename variables
+summarize()   # generate summary statistics
+
+
+bind_rows()
+bind_cols()
+
+# ------------------------------
+# DPLYR usage example, full walkthrough
+# ------------------------------
+library(dplyr)
+chicago <- readRDS("chicago.rds")
+# chicagoDF <- tbl_df(chicago)
+dim(chicago)
+str(chicago)
+names(chicago)
+
+
+head(select(chicago, city:dptp)) # get these cols
+head(select(chicago, -(city:dptp))) # get all cols except these ones
+
+
+chic.f <- filter(chicago, pm25tmean2 > 30 & tmpd > 80)
+head(chic.f)
+
+
+chicago <- arrange(chicago, date)
+head(chicago)
+tail(chicago)
+
+
+chicago <- arrange(chicago, desc(date))
+head(chicago)
+tail(chicago)
+
+
+chicago <- rename(chicago, pm25 = pm25tmean2, dewpoint = dptp)
+head(chicago)
+
+
+chicago <- mutate(chicago, pm25detrend = pm25 - mean(pm25, na.rm=TRUE))
+head(select(chicago, pm25, pm25detrend))
+
+
+chicago <- mutate(chicago, tempcat = factor(1 * (tmpd > 80), labels = c("cold", "hot")))
+hotcold <- group_by(chicago, tempcat)
+head(hotcold)
+summarize(hotcold, pm25 = mean(pm25, na.rm=TRUE), o3 = max(o3tmean2), no2 = median(no2tmean2))
+
+
+chicago <- mutate(chicago, year = as.POSIXlt(date)$year + 1900)
+years <- group_by(chicago, year)
+summarize(years, pm25 = mean(pm25, na.rm=TRUE), o3 = max(o3tmean2), no2 = median(no2tmean2))
+
+
+# put it all together using the pipeline operator %>% (avoids variable assignment at each step)
+chicago %>% mutate(month = as.POSIXlt(date)$mon + 1) %>% group_by(month) %>% summarize(years, pm25 = mean(pm25, na.rm=TRUE), o3 = max(o3tmean2), no2 = median(no2tmean2))
+```
+
+
+
+
+
+### TIDYR/READR package
+http://vita.had.co.nz/papers/tidy-data.pdf
+```{r}
+# PROBLEM 1: you have column headers that are values, not variable names.
+gather(students, sex, count, -grade)
+
+
+# PROBLEM 2: multiple variables are stored in one column.
+gather(students2, sex_class, count, -grade)
+separate(res, sex_class, c("sex", "class"))
+
+
+# PROBLEM 3: variables are stored in both rows and columns.
+students3 %>%
+  gather(class, grade, class1:class5, na.rm = TRUE) %>%
+  spread(test, grade) %>%
+  mutate(class=parse_number(class)) %>%
+  print
+
+
+# PROBLEM 4: multiple observational units are stored in the same table.
+student_info <- students4 %>%
+  select(id, name, sex) %>%
+  unique() %>%
+  print
+
+gradebook <- students4 %>%
+  select(id, class, midterm, final) %>%
+  print
+
+
+# PROBLEM 5: a single observational unit is stored in multiple tables (opposite of problem 4).
+passed <- passed %>% mutate(status="passed")
+failed <- failed %>% mutate(status="failed")
+bind_rows(passed, failed)
+
+
+# ------------------------------
+# WALKTHROUGH OF REAL EXAMPLE
+# ------------------------------
+sat %>%
+  select(-contains("total")) %>%   # contains() checks partial string in string
+  gather(part_sex, count, -score_range) %>%
+  separate(part_sex, c("part", "sex")) %>%
+  group_by(part, sex) %>%
+  mutate(total=sum(count),
+         prop = count/total
+  ) %>% print
+```
+
+
+### Editing malformatted text
+```{r}
+tolower()
+toupper()
+
+# split on period
+strsplit(string, "\\.")
+
+# keep only first element of the split
+firstElement <- function(x){x[1]}
+sapply(splitNames,firstElement)
+
+# substitute underscore by space
+sub("_", " ", names(reviews),)
+
+# substitute multiple underscores
+gsub("_", " ", string)
+
+# find strings by index or values
+grep("string", dataset$column)
+grep("string", dataset$column, value=TRUE)
+
+# find strings by logic
+table(grepl("string", dataset$column))
+
+# subset by found string
+subset <- dataset[!grepl("string", dataset$column),]
+```
+### STRINGR package
+```{r}
+library(stringr)
+
+# number of characters in the string
+nchar("string")
+
+# subset string from n to m
+substr("string", n, m)
+
+# paste strings together
+paste("string1", "string2", sep=" ")
+paste0("string1", "string2")
+
+# trim spaces in strings
+str_trim("string    ")
+```
+
+
+
+
+### Regular expressions
+```{r}
+# metacharacters
+^string                         # start of line
+string$                         # end of line
+  
+[Ss][Tt][Rr][Ii][Nn][Gg]        # case insensitive matching of word 'string'
+^[0-9][a-zA-Z]                  # range of numbers + letters
+
+[^ ]                            # NOT a space
+[^?.]$                          # search end of line that DOESN'T end with ? or .
+9.11                            # . refers to any character
+
+flood|fire|hurricane            # | refers to either flood OR fire OR hurricane
+[Gg]eorge( [Ww]\.)? [Bb]ush     # ? denotes stuff in () is optional in George W. Bush. the \ ensures that . is a LITERAL, not metacharacter
+
+(.*)                            # ANY character, ANY number of times
+(.+)                            # ANY character, at least ONCE
+
+^s(.*)s$                        # the * searches for longest possible string that starts and ends with 's'
+^s(.*?)s$                       # deactivates length greediness of *
+{1, 5}                          # interval quantifiers: between 1 and 5 of something
+
+m,n                             # between m and n matches
+m                               # exactly m matches
+m,                              # at least m matches
+
+ +([a-zA-Z]+) +\1 +             # replicate = 1, find repeated strings in sequence: "blah blah"
+
+# COMPLEX CASES
+^[Gg]ood|[Bb]ad                 # start of line good, or bad anywhere, case insensitive
+[0-9]+ (.*)[0-9]+               # at least one number, any character in () and at least one number
+[Bb]ush( +[^]+ +){1,5} debate   # 1 to 5 words between B/bush and debate
+```
+
+
+### Working with dates
+```{r}
+d1 = date()        # character class
+d2 = Sys.Date()    # date class
+
+format(Sys.Date(), "%a %b %d") # abbreviated weekday, month, day
+format(Sys.Date(), "%A %B %D") # unabbreviated weekday, month, day
+
+x = c("1jan1960","30jul2011"); z = as.Date(x, "%d%b%Y")
+diff = z[1]-z[2] # time difference in days
+as.numeric(diff)
+
+weekdays(d2)
+months(d2)
+julian(d2) # days since the 'origin'
+```
+
+
+### LUBRIDATE package
+```{r}
+library(lubridate)
+
+ymd("20140108") # year month date conversion
+mdy("08/04/2013")
+dmy("03-04-2013")
+ymd_hms("2011-08-03 10:15:03", tz="Europe/London")
+
+
+wday(d2)
+wday(d2,label=TRUE)
+```
+
+### **run_analysis.R**
+```{r}
+# ---------------------------
+# imports
+# ---------------------------
+library(data.table)
+library(reshape2)
+
+
+# ---------------------------
+# download and unzip dataset
+# ---------------------------
+path <- getwd()
+url <- "https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip"
+download.file(url, file.path(path, "dataset.zip"))
+unzip(zipfile = "dataset.zip")
+
+
+
+# ---------------------------
+# UCI HAR Dataset folder: loads
+# ---------------------------
+activityLabels <- fread(file.path(path, "UCI HAR Dataset/activity_labels.txt"), col.names=c("Label", "Activity"))
+features <- fread(file.path(path, "UCI HAR Dataset/features.txt"), col.names=c("id", "featureName"))
+
+# filter only parameters that are mean or std
+featuresWanted <- grep("(mean|std)\\()", features$featureName)
+
+# clean up names
+measurements <- gsub('[()]', '', featuresWanted)
+
+
+
+# ---------------------------
+# TRAIN dataset
+# ---------------------------
+# load training values
+train <- fread(file.path(path, "UCI HAR Dataset/train/X_train.txt"))[, featuresWanted, with = FALSE]
+
+# change column names to each measurement
+setnames(train, colnames(train), measurements)
+
+# load type of activity for those specific metrics
+trainActivities <- fread(file.path(path, "UCI HAR Dataset/train/Y_train.txt"), col.names = c("Activity"))
+
+# load person id using the wearable
+trainSubjects <- fread(file.path(path, "UCI HAR Dataset/train/subject_train.txt"), col.names = c("Subject"))
+
+# merge all data into the train set
+train <- cbind(trainSubjects, trainActivities, train)
+
+
+# ---------------------------
+# TEST dataset
+# ---------------------------
+# load testing values
+test <- fread(file.path(path, "UCI HAR Dataset/test/X_test.txt"))[, featuresWanted, with = FALSE]
+
+# change column names to each measurement
+setnames(test, colnames(test), measurements)
+
+# load type of activity for those specific metrics
+testActivities <- fread(file.path(path, "UCI HAR Dataset/test/Y_test.txt"), col.names = c("Activity"))
+# load person id using the wearable
+testSubjects <- fread(file.path(path, "UCI HAR Dataset/test/subject_test.txt"), col.names = c("Subject"))
+
+# merge all data into the test set
+test <- cbind(testSubjects, testActivities, test)
+
+
+
+# ---------------------------
+# MERGE train and test data
+# ---------------------------
+traintest <- rbind(train, test)
+
+
+# ---------------------------
+# Change activity and subject 
+# values to descriptive labels
+# ---------------------------
+traintest[["Activity"]] <- factor(traintest[, Activity], levels = activityLabels[["Label"]], labels = activityLabels[["Activity"]])
+traintest[["Subject"]] <- as.factor(traintest[, Subject])
+
+
+# ---------------------------
+# Secondary dataset with 
+# mean by subject and activity
+# ---------------------------
+
+# group by subject and activity
+traintest_mean <- melt(traintest, c("Subject", "Activity"))
+
+# create new dataset
+traintest_mean <- dcast(traintest_mean, Subject+Activity ~ variable, fun.aggregate = mean)
+
+# assign descriptive column names
+traintest_labels <- c("Subject", "Activity", grep("(mean|std)\\()", features$featureName, value=TRUE))
+names(traintest_mean) <- traintest_labels
+
+# write dataset to tidyData.txt
+fwrite(traintest_mean, file="tidyData.txt", quote=FALSE)
+```
+
+
+
+## 4. Exploratory Data Analysis
