@@ -436,7 +436,6 @@ summary {
 <h1>1. Download and read data</h1>
 <pre class="r"><code>library(data.table)
 
-setwd(&quot;C:/Users/Asus/Documents/code/assignments/Course5&quot;)
 path &lt;- getwd()
 url &lt;- &quot;https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip&quot;
 
@@ -509,8 +508,8 @@ head(stepsPerInterval)</code></pre>
 <pre class="r"><code>activity2 &lt;- activity
 activity2[is.na(steps), &quot;steps&quot;] &lt;- mean(activity$steps, na.rm=TRUE)</code></pre>
 <pre><code>## Warning in `[&lt;-.data.table`(`*tmp*`, is.na(steps), &quot;steps&quot;, value =
-## 37.3825995807128): 37.382600 (type &#39;double&#39;) at RHS position 1 truncated
-## (precision lost) when assigning to type &#39;integer&#39; (column 1 named &#39;steps&#39;)</code></pre>
+## 37.3825995807128): 37.382600 (type &#39;double&#39;) at RHS position 1 truncated (precision
+## lost) when assigning to type &#39;integer&#39; (column 1 named &#39;steps&#39;)</code></pre>
 <pre class="r"><code>head(activity)</code></pre>
 <pre><code>##    steps       date interval
 ## 1:    NA 2012-10-01        0
