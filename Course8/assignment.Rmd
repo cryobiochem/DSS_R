@@ -1,0 +1,137 @@
+---
+title: "Human Activity Recognition"
+author: "Bruno Guerreiro"
+date: "December 6, 2020"
+output:
+  html_document:
+    theme: united
+    highlight: tango
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load data
+```{r}
+path = getwd()
+trainUrl = "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+testUrl = "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+
+download.file(trainUrl, destfile="pml-training.csv")
+download.file(testUrl, destfile="pml-testing.csv")
+
+train = read.csv("pml-training.csv")
+test = read.csv("pml-testing.csv")
+
+train$classe <- as.factor(train$classe)
+```
+
+# Goal
+Predict `classe` variable, which states how the individual performed the movement.
+
+# Problem description
+Six young health participants were asked to perform one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in five different fashions (`classe` variable, the one to predict): 
+
+- exactly according to the specification (Class A)  
+- throwing the elbows to the front (Class B)  
+- lifting the dumbbell only halfway (Class C)  
+- lowering the dumbbell only halfway (Class D)  
+- throwing the hips to the front (Class E)  
+
+
+# Data cleaning
+NAs do not allow for random forest model fitting.
+```{r}
+# remove NA columns from train and test
+library(dplyr)
+test<-test[,colSums(is.na(test))<nrow(test)]
+naList<-c(colnames(test)[1:59],"classe")
+train<-train %>% select(naList)
+rm(naList)
+
+```
+```{r}
+# check for NAs
+sum(is.na(train))
+sum(is.na(test))
+```
+
+# Choose predictors to use (that are numeric/integers) for model fitting
+```{r}
+trainData <- train[8:length(train)]
+validationData <- test[9:length(test)-1]
+```
+
+
+# Train-test splitting
+In the interest of time and computational simplicity, we'll do a simple 70/30 split, test on the 70%, train on the 30%, and use the `validationData` variable to validate.
+
+```{r}
+library(caret)
+set.seed(1)
+inTrain<-createDataPartition(y=trainData$classe,p=0.7,list=FALSE)
+training<-trainData[inTrain,]
+testing<-trainData[-inTrain,]
+```
+
+
+
+# Model fitting
+I chose to perform principal component analysis before modelling. Data acquisition is based on tridimensionality (x,y,z), so each dimension of a movement is part of a greater descriptor of behavior.
+
+I chose Random Forest as the first model to test because it usually provides the best results in multi-class categorical multidimensional data. Data acquisition is based on tridimensionality (x,y,z), so each dimension of a movement is part of a greater descriptor of behavior: if a random forest wasn't enough, I would reduce dimensionality with PCA, but I didn't want to lose interpretability just now, so I avoided it for now.
+
+```{r}
+# first we activate parallel processing for models to run faster
+library(parallel)
+library(doParallel)
+cluster <-makeCluster(detectCores()-1)
+registerDoParallel(cluster)
+```
+
+Then create a cross-validation control structure.
+```{r}
+library(caret)
+fitControl<-trainControl(method="cv",number=20,allowParallel = TRUE)
+```
+
+```{r}
+modFit<-train(classe ~. , method="rf",data=training,trControl=fitControl)
+```
+
+```{r}
+# stop parallel cluster process
+stopCluster(cluster)
+registerDoSEQ()
+```
+
+# Accuracy metrics
+```{r}
+confusionMatrix(table(testing$classe,predict(modFit,testing)))
+```
+
+Using a random forest with cross-validation on a 70/30 split of the testing data yields 99.25% accuracy in movement labelling, with a P-value extremely low. All statistics are also shown in the final table.  
+
+The values in the diagonal show true positives, as the model correctly labelled the movement, compared to what is stated in the test data.
+
+# Model prediction on the validation
+
+```{r}
+pred <- predict(modFit, validationData)
+pred
+```
+
+# What variables contribute most to how movement is performed?
+```{r fig.height=12, fig.width=8}
+importance<-varImp(modFit,scale=FALSE)
+plot(importance, main="Most important movement features in dumbbell curling", cex=2, pch=20, type='b')
+```
+
+# Conclusions of the study
+This study focuses on a weight lifting movement called a **dumbbell curl**. It involves applying force to move your arm up with a weight on your palm, so your center of mass moves forward when the dumbbell is at maximum distance from your body. 
+
+- As you can see from the importance plot, the 2 most important variables are from the belt sensor, which makes sense because not only you need to have a tight core to perform the movement correctly, but as soon as you fail correct execution, it is your core that compensates your lack of strength on your arm, so the best sensor always capture whatever movement classification is occurring.  
+
+- On the other hand, notice that acceleration of either sensor does not appear to be very important. That is because a correct execution requires controlled movement, so when you apply acceleration to try and execute, conservation of momentum forces your body structures of over-compensate and form is lost.
